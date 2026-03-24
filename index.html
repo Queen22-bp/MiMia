@@ -3,275 +3,213 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MiMia PRO 💬🎧</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet">
+<title>Music Pro</title>
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Poppins}
-body{display:flex;height:100vh;background:#0f172a;color:white}
-
-/* LAYOUT */
-.app{display:flex;width:100%}
-
-/* SIDEBAR */
-.sidebar{
-  width:25%;
-  background:#020617;
-  padding:10px;
-  border-right:1px solid #1f2937;
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #121212;
+    color: white;
 }
 
-.logo{font-size:20px;font-weight:bold;margin-bottom:10px}
-
-/* CHAT */
-.chat-area{
-  flex:1;
-  display:flex;
-  flex-direction:column;
+/* Layout */
+.container {
+    display: flex;
+    height: 100vh;
 }
 
-.messages{
-  flex:1;
-  overflow:auto;
-  padding:10px;
+/* Sidebar */
+.sidebar {
+    width: 250px;
+    background: #000;
+    padding: 20px;
 }
 
-.message{
-  padding:10px;
-  margin:5px;
-  border-radius:10px;
-  max-width:70%;
+.sidebar h2 {
+    color: #1db954;
 }
 
-.me{background:#22c55e;margin-left:auto}
-.other{background:#374151}
-
-.input-area{
-  display:flex;
-  padding:10px;
-  background:#020617;
+/* Main */
+.main {
+    flex: 1;
+    padding: 20px;
 }
 
-input{
-  flex:1;
-  padding:10px;
-  border-radius:20px;
-  border:none;
+/* Search */
+input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 20px;
+    border: none;
+    margin-bottom: 20px;
 }
 
-button{
-  margin-left:10px;
-  padding:10px;
-  border:none;
-  border-radius:20px;
-  background:#22c55e;
-  color:white;
+/* Song list */
+.song {
+    padding: 10px;
+    background: #1e1e1e;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    cursor: pointer;
 }
 
-/* PLAYER */
-.player{
-  width:30%;
-  background:#020617;
-  padding:10px;
-  border-left:1px solid #1f2937;
+.song:hover {
+    background: #333;
 }
 
-#search{
-  width:100%;
-  padding:8px;
-  border-radius:10px;
-  border:none;
-  margin-bottom:5px;
+/* Player */
+.player {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background: #181818;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
-.song{
-  padding:8px;
-  border-bottom:1px solid #1f2937;
-  cursor:pointer;
+.controls button {
+    background: #1db954;
+    border: none;
+    padding: 10px;
+    margin: 5px;
+    border-radius: 50%;
+    cursor: pointer;
 }
 
-.song:hover{background:#1f2937}
-
-.fav{
-  float:right;
-  cursor:pointer;
+.controls button:hover {
+    background: #17a34a;
 }
 
-.controls{
-  display:flex;
-  justify-content:space-between;
-  margin-top:5px;
+.progress {
+    width: 50%;
 }
 </style>
 </head>
 
 <body>
 
-<div class="app">
+<div class="container">
 
-<!-- SIDEBAR -->
-<div class="sidebar">
-  <div class="logo">MiMia 💬🎧</div>
+    <div class="sidebar">
+        <h2>🎧 Music</h2>
+        <p>Playlist</p>
+        <div id="playlist"></div>
+    </div>
+
+    <div class="main">
+        <input type="text" id="search" placeholder="🔍 Rechercher...">
+        <div id="songs"></div>
+    </div>
+
 </div>
 
-<!-- CHAT -->
-<div class="chat-area">
-  <div class="messages" id="messages"></div>
-
-  <div class="input-area">
-    <input id="msgInput" placeholder="Écrire un message...">
-    <button onclick="sendMessage()">Envoyer</button>
-  </div>
-</div>
-
-<!-- PLAYER -->
 <div class="player">
+    <div>
+        <strong id="currentSong">Aucune musique</strong>
+    </div>
 
-  🔍 <input id="search" placeholder="Rechercher musique..." onkeyup="searchMusic()">
+    <div class="controls">
+        <button onclick="prevSong()">⏮</button>
+        <button onclick="playSong()">▶</button>
+        <button onclick="pauseSong()">⏸</button>
+        <button onclick="nextSong()">⏭</button>
+    </div>
 
-  <div id="results"></div>
-
-  <audio id="audio" controls></audio>
-
-  <div class="controls">
-    <button onclick="prev()">⏮</button>
-    <button onclick="next()">⏭</button>
-    <button onclick="shuffle()">🔀</button>
-  </div>
-
+    <input type="range" id="progress" class="progress" value="0">
 </div>
 
-</div>
-
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+<audio id="audio"></audio>
 
 <script>
-const firebaseConfig = {
-  apiKey: "TON_API_KEY",
-  authDomain: "TON_PROJECT.firebaseapp.com",
-  projectId: "TON_PROJECT"
-};
+// Liste des musiques
+const songs = [
+    { name: "Song 1", src: "music1.mp3" },
+    { name: "Song 2", src: "music2.mp3" },
+    { name: "Song 3", src: "music3.mp3" }
+];
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-const auth = firebase.auth();
+let currentIndex = 0;
 
-let userId;
+const audio = document.getElementById("audio");
+const songsContainer = document.getElementById("songs");
+const playlist = document.getElementById("playlist");
+const currentSongText = document.getElementById("currentSong");
+const search = document.getElementById("search");
+const progress = document.getElementById("progress");
 
-// 🔐 AUTH
-auth.signInAnonymously().then(u=>{
-  userId = u.user.uid;
+// Charger liste
+function loadSongs(filter = "") {
+    songsContainer.innerHTML = "";
+    songs.forEach((song, index) => {
+        if (song.name.toLowerCase().includes(filter.toLowerCase())) {
+            let div = document.createElement("div");
+            div.className = "song";
+            div.innerText = song.name;
+            div.onclick = () => playIndex(index);
+            songsContainer.appendChild(div);
+        }
+    });
+}
+
+// Playlist sidebar
+function loadPlaylist() {
+    playlist.innerHTML = "";
+    songs.forEach((song, index) => {
+        let div = document.createElement("div");
+        div.className = "song";
+        div.innerText = song.name;
+        div.onclick = () => playIndex(index);
+        playlist.appendChild(div);
+    });
+}
+
+// Lecture
+function playIndex(index) {
+    currentIndex = index;
+    audio.src = songs[index].src;
+    audio.play();
+    currentSongText.innerText = songs[index].name;
+}
+
+function playSong() {
+    audio.play();
+}
+
+function pauseSong() {
+    audio.pause();
+}
+
+function nextSong() {
+    currentIndex = (currentIndex + 1) % songs.length;
+    playIndex(currentIndex);
+}
+
+function prevSong() {
+    currentIndex = (currentIndex - 1 + songs.length) % songs.length;
+    playIndex(currentIndex);
+}
+
+// Progress bar
+audio.addEventListener("timeupdate", () => {
+    progress.value = (audio.currentTime / audio.duration) * 100;
 });
 
-// 💬 CHAT
-function sendMessage(){
-  const input = document.getElementById("msgInput");
-  if(!input.value.trim()) return;
-
-  db.collection("messages").add({
-    text: input.value,
-    user: userId,
-    time: Date.now()
-  });
-
-  input.value="";
-}
-
-db.collection("messages").orderBy("time")
-.onSnapshot(snapshot=>{
-  const div = document.getElementById("messages");
-  div.innerHTML="";
-
-  snapshot.forEach(doc=>{
-    const d = doc.data();
-    const m = document.createElement("div");
-
-    m.className = "message " + (d.user===userId ? "me" : "other");
-    m.innerText = d.text;
-
-    div.appendChild(m);
-  });
-
-  div.scrollTop = div.scrollHeight;
+progress.addEventListener("input", () => {
+    audio.currentTime = (progress.value / 100) * audio.duration;
 });
 
-// 🎧 MUSIQUE
-let history = [];
-let current = 0;
+// Recherche
+search.addEventListener("input", (e) => {
+    loadSongs(e.target.value);
+});
 
-function play(url,title){
-  const audio = document.getElementById("audio");
-  audio.src = url;
-  audio.play();
-
-  history.push({url,title});
-  current = history.length-1;
-}
-
-// 🔍 API Deezer
-async function searchMusic(){
-  const q = document.getElementById("search").value;
-
-  if(q.length < 2) return;
-
-  const res = await fetch("https://api.allorigins.win/raw?url=https://api.deezer.com/search?q=" + q);
-  const data = await res.json();
-
-  const div = document.getElementById("results");
-  div.innerHTML = "";
-
-  data.data.slice(0,10).forEach(song=>{
-    const el = document.createElement("div");
-    el.className = "song";
-
-    el.innerHTML = `
-      🎵 ${song.title} - ${song.artist.name}
-      <span class="fav" onclick="addFav('${song.preview}','${song.title}')">❤️</span>
-    `;
-
-    el.onclick = ()=>play(song.preview, song.title);
-
-    div.appendChild(el);
-  });
-}
-
-// ⏭ CONTROLES
-function next(){
-  if(history.length){
-    current = (current+1)%history.length;
-    play(history[current].url, history[current].title);
-  }
-}
-
-function prev(){
-  if(history.length){
-    current = (current-1+history.length)%history.length;
-    play(history[current].url, history[current].title);
-  }
-}
-
-function shuffle(){
-  if(history.length){
-    current = Math.floor(Math.random()*history.length);
-    play(history[current].url, history[current].title);
-  }
-}
-
-// ❤️ FAVORIS
-function addFav(url,title){
-  let favs = JSON.parse(localStorage.getItem("favs") || "[]");
-  favs.push({url,title});
-  localStorage.setItem("favs", JSON.stringify(favs));
-  alert("Ajouté aux favoris ❤️");
-}
-
-// ▶️ AUTO NEXT
-document.getElementById("audio").addEventListener("ended", next);
+// Init
+loadSongs();
+loadPlaylist();
 </script>
 
 </body>
-      </html>
+</html>
