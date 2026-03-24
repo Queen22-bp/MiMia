@@ -8,15 +8,15 @@
 <style>
 body {
     margin: 0;
-    font-family: Arial, sans-serif;
+    font-family: Arial;
     background: #121212;
     color: white;
 }
 
 header {
-    padding: 20px;
-    text-align: center;
     background: #000;
+    padding: 15px;
+    text-align: center;
     color: #1db954;
     font-size: 22px;
 }
@@ -30,6 +30,16 @@ input {
     padding: 12px;
     border-radius: 20px;
     border: none;
+    margin-bottom: 10px;
+}
+
+button {
+    padding: 10px;
+    border: none;
+    border-radius: 20px;
+    background: #1db954;
+    color: white;
+    cursor: pointer;
     margin-bottom: 20px;
 }
 
@@ -62,21 +72,32 @@ input {
 
 <div class="container">
 
-    <input type="text" id="search" placeholder="🔍 Rechercher une musique...">
+    <!-- RECHERCHE -->
+    <input type="text" id="search" placeholder="🔍 Rechercher...">
 
+    <!-- AJOUT MUSIQUE -->
+    <input type="text" id="urlInput" placeholder="URL du fichier MP3">
+    <input type="text" id="titleInput" placeholder="Titre">
+    <input type="text" id="artistInput" placeholder="Artiste">
+
+    <button onclick="uploadFromURL()">Ajouter musique</button>
+
+    <!-- LISTE -->
     <div id="songs"></div>
 
 </div>
 
+<!-- PLAYER -->
 <div id="player"></div>
 
-<!-- Firebase -->
+<!-- FIREBASE -->
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
-// 🔑 CONFIG À REMPLACER
+// 🔑 CONFIG (À REMPLACER)
 const firebaseConfig = {
     apiKey: "TON_API_KEY",
     authDomain: "TON_PROJET.firebaseapp.com",
@@ -86,37 +107,38 @@ const firebaseConfig = {
     appId: "XXXX"
 };
 
-// Init Firebase
+// INIT
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 // DOM
 const songsDiv = document.getElementById("songs");
 const search = document.getElementById("search");
 const player = document.getElementById("player");
 
-let allSongs = [];
+let songsList = [];
 
-// Charger les musiques
+// 🔄 CHARGER MUSIQUES
 async function loadSongs() {
 
     const snapshot = await getDocs(collection(db, "songs"));
 
-    allSongs = [];
+    songsList = [];
 
     snapshot.forEach(doc => {
-        allSongs.push(doc.data());
+        songsList.push(doc.data());
     });
 
-    displaySongs(allSongs);
+    displaySongs(songsList);
 }
 
-// Affichage
-function displaySongs(songs) {
+// 📄 AFFICHAGE
+function displaySongs(list) {
 
     songsDiv.innerHTML = "";
 
-    songs.forEach(song => {
+    list.forEach(song => {
 
         const div = document.createElement("div");
         div.className = "song";
@@ -132,7 +154,7 @@ function displaySongs(songs) {
     });
 }
 
-// Lecture
+// ▶️ LECTURE
 function playSong(song) {
 
     player.innerHTML = `
@@ -143,19 +165,59 @@ function playSong(song) {
     `;
 }
 
-// Recherche
+// 🔍 RECHERCHE
 search.addEventListener("input", (e) => {
 
     const value = e.target.value.toLowerCase();
 
-    const filtered = allSongs.filter(song =>
-        song.title.toLowerCase().includes(value)
+    const filtered = songsList.filter(song =>
+        song.title.toLowerCase().includes(value) ||
+        (song.artist && song.artist.toLowerCase().includes(value))
     );
 
     displaySongs(filtered);
 });
 
-// Init
+// 🚀 UPLOAD DEPUIS URL
+window.uploadFromURL = async function() {
+
+    const url = document.getElementById("urlInput").value;
+    const title = document.getElementById("titleInput").value;
+    const artist = document.getElementById("artistInput").value;
+
+    if (!url || !title) {
+        alert("Titre et URL obligatoires");
+        return;
+    }
+
+    try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+
+        const fileName = "music_" + Date.now() + ".mp3";
+
+        const storageRef = ref(storage, "songs/" + fileName);
+
+        await uploadBytes(storageRef, blob);
+
+        const downloadURL = await getDownloadURL(storageRef);
+
+        await addDoc(collection(db, "songs"), {
+            title: title,
+            artist: artist,
+            url: downloadURL
+        });
+
+        alert("✅ Musique ajoutée !");
+        loadSongs();
+
+    } catch (error) {
+        console.error(error);
+        alert("❌ Erreur upload");
+    }
+};
+
+// INIT
 loadSongs();
 
 </script>
