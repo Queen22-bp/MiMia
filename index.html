@@ -3,18 +3,34 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Music Firebase</title>
+<title>Music Pro</title>
 
 <style>
 body {
     margin: 0;
-    font-family: Arial;
+    font-family: Arial, sans-serif;
     background: #121212;
     color: white;
 }
 
+header {
+    padding: 20px;
+    text-align: center;
+    background: #000;
+    color: #1db954;
+    font-size: 22px;
+}
+
 .container {
     padding: 20px;
+}
+
+input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 20px;
+    border: none;
+    margin-bottom: 20px;
 }
 
 .song {
@@ -38,12 +54,29 @@ body {
 }
 </style>
 
-<!-- Firebase (version moderne) -->
+</head>
+
+<body>
+
+<header>🎧 Music Pro</header>
+
+<div class="container">
+
+    <input type="text" id="search" placeholder="🔍 Rechercher une musique...">
+
+    <div id="songs"></div>
+
+</div>
+
+<div id="player"></div>
+
+<!-- Firebase -->
 <script type="module">
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// 🔑 CONFIG FIREBASE (remplace)
+// 🔑 CONFIG À REMPLACER
 const firebaseConfig = {
     apiKey: "TON_API_KEY",
     authDomain: "TON_PROJET.firebaseapp.com",
@@ -59,54 +92,73 @@ const db = getFirestore(app);
 
 // DOM
 const songsDiv = document.getElementById("songs");
+const search = document.getElementById("search");
 const player = document.getElementById("player");
 
-// 🔍 Charger musiques
+let allSongs = [];
+
+// Charger les musiques
 async function loadSongs() {
 
-    const querySnapshot = await getDocs(collection(db, "songs"));
+    const snapshot = await getDocs(collection(db, "songs"));
+
+    allSongs = [];
+
+    snapshot.forEach(doc => {
+        allSongs.push(doc.data());
+    });
+
+    displaySongs(allSongs);
+}
+
+// Affichage
+function displaySongs(songs) {
 
     songsDiv.innerHTML = "";
 
-    querySnapshot.forEach((doc) => {
-        const data = doc.data();
+    songs.forEach(song => {
 
         const div = document.createElement("div");
         div.className = "song";
-        div.innerText = data.title;
 
-        div.onclick = () => playSong(data.url, data.title);
+        div.innerHTML = `
+            <strong>${song.title}</strong><br>
+            <small>${song.artist || ""}</small>
+        `;
+
+        div.onclick = () => playSong(song);
 
         songsDiv.appendChild(div);
     });
 }
 
-// ▶️ Lecture
-function playSong(url, title) {
+// Lecture
+function playSong(song) {
 
     player.innerHTML = `
-        <p>▶️ ${title}</p>
+        <p>▶️ ${song.title}</p>
         <audio controls autoplay style="width:100%;">
-            <source src="${url}" type="audio/mp3">
+            <source src="${song.url}" type="audio/mp3">
         </audio>
     `;
 }
 
-// Charger au démarrage
+// Recherche
+search.addEventListener("input", (e) => {
+
+    const value = e.target.value.toLowerCase();
+
+    const filtered = allSongs.filter(song =>
+        song.title.toLowerCase().includes(value)
+    );
+
+    displaySongs(filtered);
+});
+
+// Init
 loadSongs();
 
 </script>
-
-</head>
-
-<body>
-
-<div class="container">
-    <h2>🎧 Music Firebase</h2>
-    <div id="songs"></div>
-</div>
-
-<div id="player"></div>
 
 </body>
 </html>
