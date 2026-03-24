@@ -132,17 +132,25 @@ const storage = getStorage(app);
 
 const chat = document.getElementById("chat");
 
-// 🔐 REGISTER
+// 🔐 REGISTER (corrigé)
 window.register = async () => {
-    await createUserWithEmailAndPassword(auth, email.value, password.value);
+    try {
+        await createUserWithEmailAndPassword(auth, email.value, password.value);
+    } catch (error) {
+        alert(error.message);
+    }
 };
 
 // 🔐 LOGIN
 window.login = async () => {
-    await signInWithEmailAndPassword(auth, email.value, password.value);
+    try {
+        await signInWithEmailAndPassword(auth, email.value, password.value);
+    } catch (error) {
+        alert(error.message);
+    }
 };
 
-// 👤 USER CONNECTÉ
+// 👤 GESTION SESSION
 onAuthStateChanged(auth, async (user) => {
 
     if (user) {
@@ -151,13 +159,17 @@ onAuthStateChanged(auth, async (user) => {
         chat.style.display = "block";
         inputBox.style.display = "flex";
 
-        // statut en ligne
         await setDoc(doc(db, "users", user.uid), {
             email: user.email,
             online: true
         });
 
         loadMessages();
+    }
+    else {
+        login.style.display = "block";
+        chat.style.display = "none";
+        inputBox.style.display = "none";
     }
 });
 
