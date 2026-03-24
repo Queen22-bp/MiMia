@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MiMia 💬</title>
+
+<!-- Google Font -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet">
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family: 'Poppins', sans-serif;
+}
+
+body{
+  display:flex;
+  height:100vh;
+  background:#0f172a;
+  color:white;
+}
+
+/* SIDEBAR */
+.sidebar{
+  width:30%;
+  background:#111827;
+  border-right:1px solid #1f2937;
+  display:flex;
+  flex-direction:column;
+}
+
+.header{
+  padding:15px;
+  font-size:20px;
+  font-weight:bold;
+  background:#020617;
+}
+
+.chat-list{
+  flex:1;
+  overflow-y:auto;
+}
+
+.chat{
+  padding:15px;
+  border-bottom:1px solid #1f2937;
+  cursor:pointer;
+}
+
+.chat:hover{
+  background:#1f2937;
+}
+
+/* CHAT AREA */
+.chat-area{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+}
+
+.messages{
+  flex:1;
+  padding:15px;
+  overflow-y:auto;
+}
+
+.message{
+  margin:10px 0;
+  padding:10px;
+  border-radius:10px;
+  max-width:60%;
+}
+
+.me{
+  background:#22c55e;
+  margin-left:auto;
+}
+
+.other{
+  background:#374151;
+}
+
+.input-area{
+  display:flex;
+  padding:10px;
+  background:#020617;
+}
+
+input{
+  flex:1;
+  padding:10px;
+  border:none;
+  border-radius:20px;
+  outline:none;
+}
+
+button{
+  margin-left:10px;
+  padding:10px 15px;
+  border:none;
+  border-radius:20px;
+  background:#22c55e;
+  color:white;
+  cursor:pointer;
+}
+
+/* MUSIC PLAYER */
+.player{
+  position:fixed;
+  bottom:0;
+  left:0;
+  width:100%;
+  background:#020617;
+  padding:10px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="header">MiMia 💬</div>
+  <div class="chat-list" id="chatList">
+    <div class="chat">Chat Global</div>
+  </div>
+</div>
+
+<!-- CHAT -->
+<div class="chat-area">
+  <div class="messages" id="messages"></div>
+
+  <div class="input-area">
+    <input id="msgInput" placeholder="Écrire un message...">
+    <button onclick="sendMessage()">Envoyer</button>
+  </div>
+</div>
+
+<!-- PLAYER -->
+<div class="player">
+  <span>🎵 Musique</span>
+  <audio controls>
+    <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3">
+  </audio>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "TON_API_KEY",
+  authDomain: "TON_PROJECT.firebaseapp.com",
+  projectId: "TON_PROJECT",
+  storageBucket: "TON_PROJECT.appspot.com",
+  messagingSenderId: "XXXX",
+  appId: "XXXX"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let userId;
+
+// LOGIN ANONYME
+auth.signInAnonymously().then(user=>{
+  userId = user.user.uid;
+});
+
+// ENVOYER MESSAGE
+function sendMessage(){
+  const input = document.getElementById("msgInput");
+  if(input.value.trim() === "") return;
+
+  db.collection("messages").add({
+    text: input.value,
+    user: userId,
+    time: Date.now()
+  });
+
+  input.value="";
+}
+
+// RECEVOIR MESSAGES
+db.collection("messages")
+.orderBy("time")
+.onSnapshot(snapshot=>{
+  const messagesDiv = document.getElementById("messages");
+  messagesDiv.innerHTML = "";
+
+  snapshot.forEach(doc=>{
+    const data = doc.data();
+    const div = document.createElement("div");
+    div.classList.add("message");
+
+    if(data.user === userId){
+      div.classList.add("me");
+    } else {
+      div.classList.add("other");
+    }
+
+    div.innerText = data.text;
+    messagesDiv.appendChild(div);
+  });
+
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+});
+</script>
+
+</body>
+  </html>
