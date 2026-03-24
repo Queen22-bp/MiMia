@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Music Pro</title>
+<title>Music Pro Online</title>
 
 <style>
 body {
@@ -45,7 +45,7 @@ input {
     margin-bottom: 20px;
 }
 
-/* Song list */
+/* Song */
 .song {
     padding: 10px;
     background: #1e1e1e;
@@ -84,7 +84,7 @@ input {
 }
 
 .progress {
-    width: 50%;
+    width: 40%;
 }
 </style>
 </head>
@@ -124,11 +124,20 @@ input {
 <audio id="audio"></audio>
 
 <script>
-// Liste des musiques
+// 🎵 Musiques en ligne
 const songs = [
-    { name: "Song 1", src: "music1.mp3" },
-    { name: "Song 2", src: "music2.mp3" },
-    { name: "Song 3", src: "music3.mp3" }
+    {
+        name: "SoundHelix 1",
+        src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+    },
+    {
+        name: "SoundHelix 2",
+        src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"
+    },
+    {
+        name: "SoundHelix 3",
+        src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"
+    }
 ];
 
 let currentIndex = 0;
@@ -140,9 +149,10 @@ const currentSongText = document.getElementById("currentSong");
 const search = document.getElementById("search");
 const progress = document.getElementById("progress");
 
-// Charger liste
+// Charger musique
 function loadSongs(filter = "") {
     songsContainer.innerHTML = "";
+
     songs.forEach((song, index) => {
         if (song.name.toLowerCase().includes(filter.toLowerCase())) {
             let div = document.createElement("div");
@@ -154,9 +164,10 @@ function loadSongs(filter = "") {
     });
 }
 
-// Playlist sidebar
+// Playlist
 function loadPlaylist() {
     playlist.innerHTML = "";
+
     songs.forEach((song, index) => {
         let div = document.createElement("div");
         div.className = "song";
@@ -212,4 +223,4 @@ loadPlaylist();
 </script>
 
 </body>
-</html>
+        </html>
