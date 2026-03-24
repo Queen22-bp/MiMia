@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Music Pro Online</title>
+<title>Music Online Pro</title>
 
 <style>
 body {
@@ -13,13 +13,11 @@ body {
     color: white;
 }
 
-/* Layout */
 .container {
     display: flex;
     height: 100vh;
 }
 
-/* Sidebar */
 .sidebar {
     width: 250px;
     background: #000;
@@ -30,24 +28,22 @@ body {
     color: #1db954;
 }
 
-/* Main */
 .main {
     flex: 1;
     padding: 20px;
 }
 
-/* Search */
 input {
     width: 100%;
-    padding: 10px;
+    padding: 12px;
     border-radius: 20px;
     border: none;
     margin-bottom: 20px;
+    font-size: 16px;
 }
 
-/* Song */
 .song {
-    padding: 10px;
+    padding: 12px;
     background: #1e1e1e;
     margin-bottom: 10px;
     border-radius: 10px;
@@ -58,33 +54,12 @@ input {
     background: #333;
 }
 
-/* Player */
-.player {
+#player {
     position: fixed;
     bottom: 0;
     width: 100%;
     background: #181818;
-    padding: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.controls button {
-    background: #1db954;
-    border: none;
     padding: 10px;
-    margin: 5px;
-    border-radius: 50%;
-    cursor: pointer;
-}
-
-.controls button:hover {
-    background: #17a34a;
-}
-
-.progress {
-    width: 40%;
 }
 </style>
 </head>
@@ -95,132 +70,78 @@ input {
 
     <div class="sidebar">
         <h2>🎧 Music</h2>
-        <p>Playlist</p>
-        <div id="playlist"></div>
+        <p>Recherche en ligne</p>
     </div>
 
     <div class="main">
-        <input type="text" id="search" placeholder="🔍 Rechercher...">
-        <div id="songs"></div>
+        <input type="text" id="search" placeholder="🔍 Rechercher une musique...">
+        <div id="results"></div>
     </div>
 
 </div>
 
-<div class="player">
-    <div>
-        <strong id="currentSong">Aucune musique</strong>
-    </div>
-
-    <div class="controls">
-        <button onclick="prevSong()">⏮</button>
-        <button onclick="playSong()">▶</button>
-        <button onclick="pauseSong()">⏸</button>
-        <button onclick="nextSong()">⏭</button>
-    </div>
-
-    <input type="range" id="progress" class="progress" value="0">
-</div>
-
-<audio id="audio"></audio>
+<div id="player"></div>
 
 <script>
-// 🎵 Musiques en ligne
-const songs = [
-    {
-        name: "SoundHelix 1",
-        src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
-    },
-    {
-        name: "SoundHelix 2",
-        src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"
-    },
-    {
-        name: "SoundHelix 3",
-        src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"
-    }
-];
 
-let currentIndex = 0;
-
-const audio = document.getElementById("audio");
-const songsContainer = document.getElementById("songs");
-const playlist = document.getElementById("playlist");
-const currentSongText = document.getElementById("currentSong");
+const results = document.getElementById("results");
 const search = document.getElementById("search");
-const progress = document.getElementById("progress");
+const player = document.getElementById("player");
 
-// Charger musique
-function loadSongs(filter = "") {
-    songsContainer.innerHTML = "";
+// 🔑 TA CLÉ API
+const apiKey = "TA_CLE_API";
 
-    songs.forEach((song, index) => {
-        if (song.name.toLowerCase().includes(filter.toLowerCase())) {
-            let div = document.createElement("div");
+// 🔍 Recherche en ligne
+async function searchMusic(query) {
+
+    if (!query) return;
+
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=${query}&key=${apiKey}`;
+
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+
+        results.innerHTML = "";
+
+        data.items.forEach(item => {
+
+            const title = item.snippet.title;
+            const videoId = item.id.videoId;
+
+            const div = document.createElement("div");
             div.className = "song";
-            div.innerText = song.name;
-            div.onclick = () => playIndex(index);
-            songsContainer.appendChild(div);
-        }
-    });
+            div.innerText = title;
+
+            div.onclick = () => play(videoId, title);
+
+            results.appendChild(div);
+        });
+
+    } catch (e) {
+        results.innerHTML = "<p>Erreur de connexion</p>";
+    }
 }
 
-// Playlist
-function loadPlaylist() {
-    playlist.innerHTML = "";
-
-    songs.forEach((song, index) => {
-        let div = document.createElement("div");
-        div.className = "song";
-        div.innerText = song.name;
-        div.onclick = () => playIndex(index);
-        playlist.appendChild(div);
-    });
+// ▶️ Lecture
+function play(videoId, title) {
+    player.innerHTML = `
+        <p style="padding:10px;">▶️ ${title}</p>
+        <iframe width="100%" height="250"
+        src="https://www.youtube.com/embed/${videoId}?autoplay=1"
+        frameborder="0"
+        allow="autoplay; encrypted-media"
+        allowfullscreen>
+        </iframe>
+    `;
 }
 
-// Lecture
-function playIndex(index) {
-    currentIndex = index;
-    audio.src = songs[index].src;
-    audio.play();
-    currentSongText.innerText = songs[index].name;
-}
-
-function playSong() {
-    audio.play();
-}
-
-function pauseSong() {
-    audio.pause();
-}
-
-function nextSong() {
-    currentIndex = (currentIndex + 1) % songs.length;
-    playIndex(currentIndex);
-}
-
-function prevSong() {
-    currentIndex = (currentIndex - 1 + songs.length) % songs.length;
-    playIndex(currentIndex);
-}
-
-// Progress bar
-audio.addEventListener("timeupdate", () => {
-    progress.value = (audio.currentTime / audio.duration) * 100;
-});
-
-progress.addEventListener("input", () => {
-    audio.currentTime = (progress.value / 100) * audio.duration;
-});
-
-// Recherche
+// 🔍 Event recherche
 search.addEventListener("input", (e) => {
-    loadSongs(e.target.value);
+    searchMusic(e.target.value);
 });
 
-// Init
-loadSongs();
-loadPlaylist();
 </script>
 
 </body>
-        </html>
+</html>
