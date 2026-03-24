@@ -3,64 +3,78 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Music Pro</title>
+<title>Chat Pro</title>
 
 <style>
 body {
     margin: 0;
     font-family: Arial;
-    background: #121212;
+    background: #0b141a;
     color: white;
 }
 
-header {
-    background: #000;
-    padding: 15px;
-    text-align: center;
-    color: #1db954;
-    font-size: 22px;
-}
-
-.container {
+/* LOGIN */
+#login {
     padding: 20px;
 }
 
 input {
+    display: block;
+    margin: 10px 0;
+    padding: 10px;
     width: 100%;
-    padding: 12px;
-    border-radius: 20px;
+}
+
+/* CHAT */
+#chat {
+    padding: 10px;
+    height: 75vh;
+    overflow-y: auto;
+}
+
+.message {
+    max-width: 70%;
+    padding: 10px;
+    margin: 6px;
+    border-radius: 12px;
+}
+
+.me {
+    background: #005c4b;
+    margin-left: auto;
+}
+
+.other {
+    background: #202c33;
+}
+
+img {
+    max-width: 200px;
+    border-radius: 10px;
+}
+
+/* INPUT */
+.input-box {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    display: flex;
+    background: #202c33;
+}
+
+input[type="text"] {
+    flex: 1;
     border: none;
-    margin-bottom: 10px;
+    padding: 10px;
+    background: #2a3942;
+    color: white;
 }
 
 button {
     padding: 10px;
+    background: #00a884;
     border: none;
-    border-radius: 20px;
-    background: #1db954;
     color: white;
-    cursor: pointer;
-    margin-bottom: 20px;
-}
-
-.song {
-    padding: 12px;
-    background: #1e1e1e;
-    margin-bottom: 10px;
-    border-radius: 10px;
-    cursor: pointer;
-}
-
-.song:hover {
-    background: #333;
-}
-
-#player {
-    position: fixed;
-    bottom: 0;
-    width: 100%;
-    background: #181818;
-    padding: 10px;
 }
 </style>
 
@@ -68,36 +82,39 @@ button {
 
 <body>
 
-<header>🎧 Music Pro</header>
-
-<div class="container">
-
-    <!-- RECHERCHE -->
-    <input type="text" id="search" placeholder="🔍 Rechercher...">
-
-    <!-- AJOUT MUSIQUE -->
-    <input type="text" id="urlInput" placeholder="URL du fichier MP3">
-    <input type="text" id="titleInput" placeholder="Titre">
-    <input type="text" id="artistInput" placeholder="Artiste">
-
-    <button onclick="uploadFromURL()">Ajouter musique</button>
-
-    <!-- LISTE -->
-    <div id="songs"></div>
-
+<!-- LOGIN -->
+<div id="login">
+    <h2>Connexion</h2>
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Mot de passe">
+    <button onclick="register()">S'inscrire</button>
+    <button onclick="login()">Connexion</button>
 </div>
 
-<!-- PLAYER -->
-<div id="player"></div>
+<!-- CHAT -->
+<div id="chat" style="display:none;"></div>
 
-<!-- FIREBASE -->
+<div class="input-box" id="inputBox" style="display:none;">
+    <input type="text" id="msg" placeholder="Message...">
+    <input type="file" id="file">
+    <button onclick="send()">Envoyer</button>
+</div>
+
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+import { 
+    getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// 🔑 CONFIG (À REMPLACER)
+import { 
+    getFirestore, collection, addDoc, onSnapshot, query, orderBy, setDoc, doc 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+import { 
+    getStorage, ref, uploadBytes, getDownloadURL 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
 const firebaseConfig = {
     apiKey: "TON_API_KEY",
     authDomain: "TON_PROJET.firebaseapp.com",
@@ -107,118 +124,96 @@ const firebaseConfig = {
     appId: "XXXX"
 };
 
-// INIT
 const app = initializeApp(firebaseConfig);
+
+const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-// DOM
-const songsDiv = document.getElementById("songs");
-const search = document.getElementById("search");
-const player = document.getElementById("player");
+const chat = document.getElementById("chat");
 
-let songsList = [];
-
-// 🔄 CHARGER MUSIQUES
-async function loadSongs() {
-
-    const snapshot = await getDocs(collection(db, "songs"));
-
-    songsList = [];
-
-    snapshot.forEach(doc => {
-        songsList.push(doc.data());
-    });
-
-    displaySongs(songsList);
-}
-
-// 📄 AFFICHAGE
-function displaySongs(list) {
-
-    songsDiv.innerHTML = "";
-
-    list.forEach(song => {
-
-        const div = document.createElement("div");
-        div.className = "song";
-
-        div.innerHTML = `
-            <strong>${song.title}</strong><br>
-            <small>${song.artist || ""}</small>
-        `;
-
-        div.onclick = () => playSong(song);
-
-        songsDiv.appendChild(div);
-    });
-}
-
-// ▶️ LECTURE
-function playSong(song) {
-
-    player.innerHTML = `
-        <p>▶️ ${song.title}</p>
-        <audio controls autoplay style="width:100%;">
-            <source src="${song.url}" type="audio/mp3">
-        </audio>
-    `;
-}
-
-// 🔍 RECHERCHE
-search.addEventListener("input", (e) => {
-
-    const value = e.target.value.toLowerCase();
-
-    const filtered = songsList.filter(song =>
-        song.title.toLowerCase().includes(value) ||
-        (song.artist && song.artist.toLowerCase().includes(value))
-    );
-
-    displaySongs(filtered);
-});
-
-// 🚀 UPLOAD DEPUIS URL
-window.uploadFromURL = async function() {
-
-    const url = document.getElementById("urlInput").value;
-    const title = document.getElementById("titleInput").value;
-    const artist = document.getElementById("artistInput").value;
-
-    if (!url || !title) {
-        alert("Titre et URL obligatoires");
-        return;
-    }
-
-    try {
-        const response = await fetch(url);
-        const blob = await response.blob();
-
-        const fileName = "music_" + Date.now() + ".mp3";
-
-        const storageRef = ref(storage, "songs/" + fileName);
-
-        await uploadBytes(storageRef, blob);
-
-        const downloadURL = await getDownloadURL(storageRef);
-
-        await addDoc(collection(db, "songs"), {
-            title: title,
-            artist: artist,
-            url: downloadURL
-        });
-
-        alert("✅ Musique ajoutée !");
-        loadSongs();
-
-    } catch (error) {
-        console.error(error);
-        alert("❌ Erreur upload");
-    }
+// 🔐 REGISTER
+window.register = async () => {
+    await createUserWithEmailAndPassword(auth, email.value, password.value);
 };
 
-// INIT
-loadSongs();
+// 🔐 LOGIN
+window.login = async () => {
+    await signInWithEmailAndPassword(auth, email.value, password.value);
+};
+
+// 👤 USER CONNECTÉ
+onAuthStateChanged(auth, async (user) => {
+
+    if (user) {
+
+        login.style.display = "none";
+        chat.style.display = "block";
+        inputBox.style.display = "flex";
+
+        // statut en ligne
+        await setDoc(doc(db, "users", user.uid), {
+            email: user.email,
+            online: true
+        });
+
+        loadMessages();
+    }
+});
+
+// 📩 ENVOYER MESSAGE
+window.send = async () => {
+
+    const text = msg.value;
+    const file = document.getElementById("file").files[0];
+
+    let imageUrl = "";
+
+    if (file) {
+        const storageRef = ref(storage, "images/" + file.name);
+        await uploadBytes(storageRef, file);
+        imageUrl = await getDownloadURL(storageRef);
+    }
+
+    await addDoc(collection(db, "messages"), {
+        text,
+        image: imageUrl,
+        user: auth.currentUser.email,
+        time: Date.now()
+    });
+
+    msg.value = "";
+};
+
+// 🔄 TEMPS RÉEL
+function loadMessages() {
+
+    const q = query(collection(db, "messages"), orderBy("time"));
+
+    onSnapshot(q, (snapshot) => {
+
+        chat.innerHTML = "";
+
+        snapshot.forEach(doc => {
+
+            const data = doc.data();
+
+            const div = document.createElement("div");
+
+            div.className = "message " + (data.user === auth.currentUser.email ? "me" : "other");
+
+            div.innerHTML = `
+                <b>${data.user}</b><br>
+                ${data.text || ""}
+                ${data.image ? `<br><img src="${data.image}">` : ""}
+            `;
+
+            chat.appendChild(div);
+        });
+
+        chat.scrollTop = chat.scrollHeight;
+    });
+}
 
 </script>
 
