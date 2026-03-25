@@ -14,7 +14,7 @@ body {
 }
 
 /* LOGIN */
-#login {
+#loginBox {
     padding: 20px;
 }
 
@@ -77,18 +77,17 @@ button {
     color: white;
 }
 </style>
-
 </head>
 
 <body>
 
 <!-- LOGIN -->
-<div id="login">
+<div id="loginBox">
     <h2>Connexion</h2>
     <input type="email" id="email" placeholder="Email">
     <input type="password" id="password" placeholder="Mot de passe">
-    <button onclick="register()">S'inscrire</button>
-    <button onclick="login()">Connexion</button>
+    <button onclick="registerUser()">S'inscrire</button>
+    <button onclick="loginUser()">Connexion</button>
 </div>
 
 <!-- CHAT -->
@@ -97,12 +96,13 @@ button {
 <div class="input-box" id="inputBox" style="display:none;">
     <input type="text" id="msg" placeholder="Message...">
     <input type="file" id="file">
-    <button onclick="send()">Envoyer</button>
+    <button onclick="sendMessage()">Envoyer</button>
 </div>
 
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+
 import { 
     getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -115,119 +115,66 @@ import {
     getStorage, ref, uploadBytes, getDownloadURL 
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
+
+// 🔥 CONFIG FIREBASE (REMPLACE PAR LE TIEN)
 const firebaseConfig = {
-    apiKey: "TON_API_KEY",
-    authDomain: "TON_PROJET.firebaseapp.com",
-    projectId: "TON_PROJET",
-    storageBucket: "TON_PROJET.appspot.com",
+    apiKey: "REMPLACE_ICI",
+    authDomain: "REMPLACE.firebaseapp.com",
+    projectId: "REMPLACE",
+    storageBucket: "REMPLACE.appspot.com",
     messagingSenderId: "XXXX",
     appId: "XXXX"
 };
 
-const app = initializeApp(firebaseConfig);
 
+// 🔥 INIT
+const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-const chat = document.getElementById("chat");
 
-// 🔐 REGISTER (corrigé)
-window.register = async () => {
+// 📌 ELEMENTS
+const chat = document.getElementById("chat");
+const loginBox = document.getElementById("loginBox");
+const inputBox = document.getElementById("inputBox");
+
+
+// 🔐 REGISTER
+window.registerUser = async () => {
     try {
-        await createUserWithEmailAndPassword(auth, email.value, password.value);
+        await createUserWithEmailAndPassword(
+            auth,
+            document.getElementById("email").value,
+            document.getElementById("password").value
+        );
     } catch (error) {
         alert(error.message);
     }
 };
+
 
 // 🔐 LOGIN
-window.login = async () => {
+window.loginUser = async () => {
     try {
-        await signInWithEmailAndPassword(auth, email.value, password.value);
+        await signInWithEmailAndPassword(
+            auth,
+            document.getElementById("email").value,
+            document.getElementById("password").value
+        );
     } catch (error) {
         alert(error.message);
     }
 };
 
-// 👤 GESTION SESSION
+
+// 👤 SESSION
 onAuthStateChanged(auth, async (user) => {
 
     if (user) {
 
-        login.style.display = "none";
+        loginBox.style.display = "none";
         chat.style.display = "block";
         inputBox.style.display = "flex";
 
-        await setDoc(doc(db, "users", user.uid), {
-            email: user.email,
-            online: true
-        });
-
-        loadMessages();
-    }
-    else {
-        login.style.display = "block";
-        chat.style.display = "none";
-        inputBox.style.display = "none";
-    }
-});
-
-// 📩 ENVOYER MESSAGE
-window.send = async () => {
-
-    const text = msg.value;
-    const file = document.getElementById("file").files[0];
-
-    let imageUrl = "";
-
-    if (file) {
-        const storageRef = ref(storage, "images/" + file.name);
-        await uploadBytes(storageRef, file);
-        imageUrl = await getDownloadURL(storageRef);
-    }
-
-    await addDoc(collection(db, "messages"), {
-        text,
-        image: imageUrl,
-        user: auth.currentUser.email,
-        time: Date.now()
-    });
-
-    msg.value = "";
-};
-
-// 🔄 TEMPS RÉEL
-function loadMessages() {
-
-    const q = query(collection(db, "messages"), orderBy("time"));
-
-    onSnapshot(q, (snapshot) => {
-
-        chat.innerHTML = "";
-
-        snapshot.forEach(doc => {
-
-            const data = doc.data();
-
-            const div = document.createElement("div");
-
-            div.className = "message " + (data.user === auth.currentUser.email ? "me" : "other");
-
-            div.innerHTML = `
-                <b>${data.user}</b><br>
-                ${data.text || ""}
-                ${data.image ? `<br><img src="${data.image}">` : ""}
-            `;
-
-            chat.appendChild(div);
-        });
-
-        chat.scrollTop = chat.scrollHeight;
-    });
-}
-
-</script>
-
-</body>
-</html>
+        await setDoc(doc(db,
